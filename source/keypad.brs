@@ -8,15 +8,15 @@
 ' ********************************************************************
 ' ********************************************************************
 
-Function NumericKeyboard(label as string, number as integer, maxDigits = 11, allowNegative = false, allowDecimal = false)
+Function NumericKeypad(label as string, number as dynamic, maxDigits = 11, allowNegative = false, allowDecimal = false) as dynamic
     'local variables
     keypadPos = { x: 500, y: 300 }
     cursorPos = { x: keypadPos.x + 258, y: keypadPos.y - 94 }
     selectedCol = 0
     selectedRow = 0
     blinkCursor = true
-    if number > 0
-        retNumber = itostr(number)
+    if number <> invalid and number <> 0
+        retNumber = strTrim(str(number))
     else
         retNumber = ""
     end if
@@ -28,15 +28,15 @@ Function NumericKeyboard(label as string, number as integer, maxDigits = 11, all
             navi : CreateObject("roAudioResource", "navsingle")
             dead : CreateObject("roAudioResource", "deadend")
             select : CreateObject("roAudioResource", "select")
-            overhang = GetOverhang()
-            buttons = GetKeyPadButtons(keypadPos)
+            overhang : GetOverhang()
+            buttons : GetKeyPadButtons(keypadPos)
            }
     'Setup Keypad
     this.canvas.SetMessagePort(this.port)
     canvasRect = this.canvas.GetCanvasRect()
     this.canvas.SetLayer(0, GetOverhang())
     this.canvas.SetLayer(1, { url: "pkg:/images/lib-keypad-back.png", TargetRect: keypadPos })
-    this.canvas.SetLayer(2, this.buttons[this.selectedCol][this.selectedRow])
+    this.canvas.SetLayer(2, this.buttons[selectedCol][selectedRow])
     this.canvas.SetLayer(3, GetField(keypadPos, label, retNumber))
     this.canvas.SetLayer(4, { url: "pkg:/images/lib-keypad-cursor.png", TargetRect: cursorPos })
     this.canvas.Show()
@@ -132,7 +132,11 @@ Function NumericKeyboard(label as string, number as integer, maxDigits = 11, all
         blinkCursor = not blinkCursor
 
     end while
-    return Int(Val(retNumber.Trim()))
+    if allowDecimal
+        return Val(retNumber.Trim())
+    else
+        return Int(Val(retNumber.Trim()))
+    end if
 
 End Function
 
@@ -254,4 +258,15 @@ Function GetField(position as object, label as string, value as string)
                 TextAttrs: {color: "#787878", font: "Medium", HAlign: "Right"}
                 TargetRect: {x: position.x + 22, y: position.y - 34, w: 240, h: 36}})
     return txtArray
+End Function
+
+Function itostr(i As Integer) As String
+    str = Stri(i)
+    return strTrim(str)
+End Function
+
+Function strTrim(str As String) As String
+    st = CreateObject("roString")
+    st.SetString(str)
+    return st.Trim()
 End Function

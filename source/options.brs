@@ -16,13 +16,13 @@ Sub SettingsScreen()
             dead : CreateObject("roAudioResource", "deadend")
            }
     this.screen.SetMessagePort(this.port)
-    this.screen.SetHeader("Configure the Tournament Structure")
+    this.screen.SetHeader("Configure the Settings")
     listItems = GetSettingsMenuItems()
     this.screen.SetContent(listItems)
     this.screen.Show()
     listIndex = 0
     while true
-        msg = WaitMessage(this.port)
+        msg = wait(0,this.port)
         if msg.isScreenClosed() then return
         if type(msg) = "roListScreenEvent"
             if msg.isListItemFocused()
@@ -37,17 +37,24 @@ Sub SettingsScreen()
                         this.screen.SetItem(index, listItems[index])
                     end if
                 else if index = 1 'Integer Value
-                    value = NumericKeyboard("Integer Value", m.settings.value, 4)
-                    if value duration > 0
-                        m.settings.value = value
-                        listItems[index].Title = "Value:" + Str(m.settings.value)
+                    value = NumericKeypad("Integer Value", m.settings.integerValue, 5, true, false)
+                    if value <> invalid
+                        m.settings.integerValue = value
+                        listItems[index].Title = "Integer Value: " + Str(m.settings.integerValue)
                         this.screen.SetItem(index, listItems[index])
                     end if
-                else if index = 2 'Duration
+                else if index = 2 'Float Value
+                    value = NumericKeypad("Float Value", m.settings.floatValue, 8, true, true)
+                    if value <> invalid
+                        m.settings.floatValue = value
+                        listItems[index].Title = "Float Value: " + Str(m.settings.floatValue)
+                        this.screen.SetItem(index, listItems[index])
+                    end if
+                else if index = 3 'Duration
                     msgbtns = ["15 minutes", "20 minutes", "30 minutes", "45 minutes", "60 minutes", "Custom..."]
                     opt = MessageBox(this.port,"Numeric Keypad", "Select the Duration", msgbtns)
                     if opt = msgbtns.Count()-1
-                        duration = NumericKeyboard("Duration (min)", m.settigns.duration , 3)
+                        duration = NumericKeypad("Duration (min)", m.settings.duration, 3)
                     else
                         duration = Int(Val(left(msgbtns[opt],2)))
                     end if
@@ -56,18 +63,18 @@ Sub SettingsScreen()
                         listItems[index].Title = "Duration:" + Str(m.settings.duration) + " minutes"
                         this.screen.SetItem(index, listItems[index])
                     end if
-                else if index = 4 'Save
-                    if SaveSettings()
-                        MessageBox("Settings saved on registy!")
+                else if index = 5 'Save
+                    if SaveSettings(m.settings)
+                        MessageBox(this.port, "Numeric Keypad", "Settings saved on registry!")
                     end if
                 end if
             else if msg.isRemoteKeyPressed()
                 bump = false
                 remoteKey = msg.GetIndex()
-                if listIndex = 3 'Colors
+                if listIndex = 4 'Colors
                     if remoteKey = m.codes.BUTTON_LEFT_PRESSED and m.settings.color > 0
                         m.settings.color--
-                    else if remoteKey = m.codes.BUTTON_RIGHT_PRESSED and m.settings.color < m.color.Count() - 1
+                    else if remoteKey = m.codes.BUTTON_RIGHT_PRESSED and m.settings.color < m.colors.Count() - 1
                         m.settings.color++
                     else
                         bump = true
@@ -97,25 +104,39 @@ Function GetSettingsMenuItems()
                 ShortDescriptionLine2: "The string can have up to 50 characters"
                 })
     listItems.Push({
-                Title: "Value:" + Str(m.settings.value)
+                Title: "Integer Value: " + Str(m.settings.integerValue)
                 HDSmallIconUrl: "pkg:/images/ElipsisIcon.png"
                 SDSmallIconUrl: "pkg:/images/ElipsisIcon.png"
                 HDPosterUrl: "pkg:/images/lib-settings.png"
                 ShortDescriptionLine1: "Press OK to type the integer value"
                 })
     listItems.Push({
-                Title: "Duration:" + Str(tournament.duration) + " minutes"
+                Title: "Float Value: " + Str(m.settings.floatValue)
+                HDSmallIconUrl: "pkg:/images/ElipsisIcon.png"
+                SDSmallIconUrl: "pkg:/images/ElipsisIcon.png"
+                HDPosterUrl: "pkg:/images/lib-settings.png"
+                ShortDescriptionLine1: "Press OK to type the float value"
+                })
+    listItems.Push({
+                Title: "Duration:" + Str(m.settings.duration) + " minutes"
                 HDSmallIconUrl: "pkg:/images/ElipsisIcon.png"
                 SDSmallIconUrl: "pkg:/images/ElipsisIcon.png"
                 HDPosterUrl: "pkg:/images/lib-settings.png"
                 ShortDescriptionLine1: "Press OK to select duration"
                 })
     listItems.Push({
-                Title: "Colors:" + Str(m.colors(m.settings.color))
+                Title: "Color: " + m.colors[m.settings.color]
                 HDSmallIconUrl: "pkg:/images/ArrowsIcon.png"
                 SDSmallIconUrl: "pkg:/images/ArrowsIcon.png"
                 HDPosterUrl: "pkg:/images/lib-settings.png"
                 ShortDescriptionLine1: "Use Left and Right to change color"
+                })
+    listItems.Push({
+                Title: "Save Settings!"
+                HDSmallIconUrl: "pkg:/images/SaveIcon.png"
+                SDSmallIconUrl: "pkg:/images/SaveIcon.png"
+                HDPosterUrl: "pkg:/images/lib-settings.png"
+                ShortDescriptionLine1: "Press OK to save"
                 })
     return listItems
 End Function
@@ -185,26 +206,35 @@ Function ShowKeyboardScreen(title = "", prompt = "", text = "", button1 = "Okay"
 End function
 
 Function GetIntSetting(key as String, default As Integer) As Integer
-    sec = CreateObject("roRegistrySection", "NumericPad")
+    sec = CreateObject("roRegistrySection", "NumericKeypad")
     if sec.Exists(key)
         return Int(Val(sec.Read(key)))
     endif
     return default
 End Function
 
+Function GetFloatSetting(key as String, default As Float) As Float
+    sec = CreateObject("roRegistrySection", "NumericKeypad")
+    if sec.Exists(key)
+        return Val(sec.Read(key))
+    endif
+    return default
+End Function
+
 Function GetStringSetting(key as String, default = "") As String
-    sec = CreateObject("roRegistrySection", "NumericPad")
+    sec = CreateObject("roRegistrySection", "NumericKeypad")
     if sec.Exists(key)
         return sec.Read(key)
     endif
     return default
 End Function
 
-Sub SaveSettings(settings as Object)
-    sec = CreateObject("roRegistrySection", "NumericPad")
-    sec.Write("Name", settings.chipdenomination)
-    sec.Write("Value", Str(settings.value))
+Function SaveSettings(settings as Object) as boolean
+    sec = CreateObject("roRegistrySection", "NumericKeypad")
+    sec.Write("Name", settings.name)
+    sec.Write("IntegerValue", Str(settings.integerValue))
+    sec.Write("FloatValue", Str(settings.floatValue))
     sec.Write("Duration", Str(settings.duration))
     sec.Write("Color", Str(settings.color))
-    sec.Flush()
-End Sub
+    return sec.Flush()
+End Function

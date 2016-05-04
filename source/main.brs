@@ -13,14 +13,15 @@ Library "v30/bslCore.brs"
 Sub Main()
     'Constants
     m.codes = bslUniversalControlEventCodes()
-    m.colors = ["Blue", "Green", "Red", "Sepia"]
+    m.colors = ["Blue", "Green", "Red", "Black", "White"]
     'Setup App Manager Theme
     app = CreateObject("roAppManager")
     app.SetTheme(GetTheme())
     'Load Settings
     m.settings = {}
     m.settings.name = GetStringSetting("Name", "Default Name")
-    m.settings.value = GetIntSetting("Value", 2)
+    m.settings.integerValue = GetIntSetting("IntegerValue", 5)
+    m.settings.floatValue = GetFloatSetting("FloatValue", 30.70)
     m.settings.duration = GetIntSetting("Duration", 15)
     m.settings.color = GetIntSetting("Color", 0)
     'Open Settings Screen

@@ -1,8 +1,8 @@
 title=Numeric Keypad
 subtitle=Example of a Numeric Keypad for data entry
 major_version=1
-minor_version=0
-build_version=030
+minor_version=1
+build_version=070
 mm_icon_focus_hd=pkg:/images/mm_icon_focus_hd.png
 mm_icon_side_hd=pkg:/images/mm_icon_side_hd.png
 mm_icon_focus_sd=pkg:/images/mm_icon_focus_sd.png

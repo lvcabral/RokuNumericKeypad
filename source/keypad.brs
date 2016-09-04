@@ -1,12 +1,24 @@
-' ********************************************************************
-' ********************************************************************
-' **  Roku NumericPad example (BrightScript)
-' **
-' **  Created: January 2016
-' **  Updated: May 2016
-' **  Copyright (c) 2016 Marcelo Lv Cabral
-' ********************************************************************
-' ********************************************************************
+'*
+'* Roku NumericPad example (BrightScript)
+'* Copyright (c) 2016 Marcelo Lv Cabral (http://github.com/lvcabral)
+'*
+'* Permission is hereby granted, free of charge, to any person obtaining a
+'* copy of this software and associated documentation files (the "Software"),
+'* to deal in the Software without restriction, including without limitation
+'* the rights to use, copy, modify, merge, publish, distribute, sublicense,
+'* and/or sell copies of the Software, and to permit persons to whom the Software
+'* is furnished to do so, subject to the following conditions:
+'*
+'* The above copyright notice and this permission notice shall be included in all
+'* copies or substantial portions of the Software.
+'*
+'* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+'* INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+'* PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+'* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+'* OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+'* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+'*
 
 Function NumericKeypad(label as string, number as dynamic, maxDigits = 11, allowNegative = false, allowDecimal = false) as dynamic
     'local variables
@@ -30,6 +42,10 @@ Function NumericKeypad(label as string, number as dynamic, maxDigits = 11, allow
             select : CreateObject("roAudioResource", "select")
             overhang : GetOverhang()
             buttons : GetKeyPadButtons(keypadPos)
+            maxDigits: maxDigits
+            allowNegative: allowNegative
+            allowDecimal: allowDecimal
+            update: update_value
            }
     'Setup Keypad
     this.canvas.SetMessagePort(this.port)
@@ -42,7 +58,7 @@ Function NumericKeypad(label as string, number as dynamic, maxDigits = 11, allow
     this.canvas.Show()
     while true
         event = wait(500, this.port)
-        if event<> invalid
+        if event <> invalid
             if event.isRemoteKeyPressed()
                 index = event.GetIndex()
                 if index = m.codes.BUTTON_LEFT_PRESSED
@@ -64,31 +80,8 @@ Function NumericKeypad(label as string, number as dynamic, maxDigits = 11, allow
                     if selectedRow >= this.buttons[selectedCol].Count() then selectedRow = 0
                     this.navi.Trigger(50)
                 else if index = m.codes.BUTTON_SELECT_PRESSED and selectedCol < 3
-                    negative = (Left(retNumber,1) = "-")
-                    bump = false
                     sel = this.buttons[selectedCol][selectedRow]
-                    if sel.button = "-" and allowNegative
-                        if negative
-                            retNumber = Mid(retNumber,2)
-                        else
-                            retNumber = "-" + retNumber
-                        end if
-                    else
-                        if sel.button = "." and (InStr(0, retNumber, ".") > 0 or not allowDecimal)
-                            bump = true
-                        else if (negative and len(retNumber) = maxDigits + 1) or (not negative and len(retNumber) = maxDigits)
-                            bump = true
-                        else if sel.button = "-"
-                            bump = true
-                        else
-                            retNumber += sel.button
-                        end if
-                    end if
-                    if bump
-                        this.dead.Trigger(50)
-                    else
-                        this.select.Trigger(50)
-                    end if
+                    retNumber = this.update(retNumber, sel.button)
                 else if index = m.codes.BUTTON_SELECT_PRESSED and selectedCol = 3
                     sel = this.buttons[selectedCol][selectedRow]
                     if sel.button = "ok"
@@ -108,7 +101,7 @@ Function NumericKeypad(label as string, number as dynamic, maxDigits = 11, allow
                             this.dead.Trigger(50)
                         end if
                     end if
-                else if index = m.codes.BUTTON_REWIND_PRESSED
+                else if index = m.codes.BUTTON_REWIND_PRESSED or index = 11
                     if Len(retNumber) > 0
                         retNumber = Left(retNumber, Len(retNumber)-1)
                         this.select.Trigger(50)
@@ -117,7 +110,9 @@ Function NumericKeypad(label as string, number as dynamic, maxDigits = 11, allow
                     end if
                 else if index = m.codes.BUTTON_BACK_PRESSED
                     return invalid
-                endif
+                else if index >= 45 and index <=57 and index <> 47
+                    retNumber = this.update(retNumber, Chr(index))
+                end if
                 this.canvas.SetLayer(0, this.overhang)
                 this.canvas.SetLayer(1, { url: "pkg:/images/lib-keypad-back.png", TargetRect: keypadPos })
                 this.canvas.SetLayer(2, this.buttons[selectedCol][selectedRow])
@@ -138,6 +133,34 @@ Function NumericKeypad(label as string, number as dynamic, maxDigits = 11, allow
         return Int(Val(retNumber.Trim()))
     end if
 
+End Function
+
+Function update_value(retNumber as string, newChar as string) as string
+    negative = (Left(retNumber,1) = "-")
+    bump = false
+    if newChar = "-" and m.allowNegative
+        if negative
+            retNumber = Mid(retNumber,2)
+        else
+            retNumber = "-" + retNumber
+        end if
+    else
+        if newChar = "." and (InStr(0, retNumber, ".") > 0 or not m.allowDecimal)
+            bump = true
+        else if (negative and len(retNumber) = m.maxDigits + 1) or (not negative and len(retNumber) = m.maxDigits)
+            bump = true
+        else if newChar = "-"
+            bump = true
+        else
+            retNumber += newChar
+        end if
+    end if
+    if bump
+        m.dead.Trigger(50)
+    else
+        m.select.Trigger(50)
+    end if
+    return retNumber
 End Function
 
 Function GetOverhang()
